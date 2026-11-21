@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'smart_image.dart';
 
 class StaffAvatar extends StatelessWidget {
   final String name;
-  final String? image; // asset path, null = initials placeholder
+  final String? image;
   final double width;
   final double height;
   final double radius;
@@ -52,12 +53,11 @@ class StaffAvatar extends StatelessWidget {
         width: width,
         height: height,
         child: image != null
-            ? Image.asset(
-          image!,
-          fit: BoxFit.cover,
-          alignment: Alignment.topCenter,
-          errorBuilder: (_, __, ___) => _fallback(),
-        )
+            ? SmartImage.asset(
+                image!,
+                alignment: Alignment.topCenter, // chehra upar rehta hai
+                fallback: _fallback(),
+              )
             : _fallback(),
       ),
     );

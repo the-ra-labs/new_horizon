@@ -147,6 +147,8 @@ class _ListingsScreenState extends State<ListingsScreen> {
         Responsive.maxContentWidth(context)) -
         40;
     final cols = w >= 960 ? 3 : (w >= 600 ? 2 : 1);
+    final cardW = (w - 14 * (cols - 1)) / cols;
+    final imgH = (cardW * 9 / 16).clamp(150.0, 240.0).toDouble();
 
     return SubShell(
       caption: widget.caption,
@@ -212,7 +214,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
             sliver: SliverGrid(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: cols,
-                mainAxisExtent: ListingCard.height,
+                mainAxisExtent: imgH + ListingCard.bodyHeight,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
               ),
@@ -224,6 +226,7 @@ class _ListingsScreenState extends State<ListingsScreen> {
                     delayMs: (i % 6) * 50,
                     child: ListingCard(
                       l: l,
+                      imageHeight: imgH,
                       onTap: () => Navigator.of(context)
                           .push(fadeRoute(ListingDetailScreen(l: l))),
                     ),

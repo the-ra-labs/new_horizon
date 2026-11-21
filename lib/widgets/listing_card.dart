@@ -4,6 +4,7 @@ import '../data/stores.dart';
 import '../theme/app_colors.dart';
 import '../utils/helpers.dart';
 import 'press_scale.dart';
+import 'smart_image.dart';
 
 List<Color> kindColors(Listing l) => switch (l.kind) {
   ListingKind.plot => const [Color(0xFF2B2A18), Color(0xFF16261D)],
@@ -24,6 +25,123 @@ IconData kindIcon(Listing l) => switch (l.kind) {
       ? Icons.home_work_rounded
       : Icons.house_rounded),
 };
+
+// ---------------------------------------------------------------------
+// PHOTO VARIETY
+//
+// Har category ki kitni photos `assets/images/categories/` mein hain,
+// wo number yahan likho. Naming:
+//   pehli photo : plot.jpg
+//   baqi        : plot_2.jpg, plot_3.jpg ... plot_20.jpg
+// Kam photos rakho to number kam kar do (0 = us category ke liye
+// commercial_plot -> plot, upper -> house ki photos use hongi).
+// ---------------------------------------------------------------------
+const Map<String, int> kPhotoCounts = {
+  'plot': 20, // Residential plot
+  'commercial_plot': 20, // Commercial plot
+  'building': 20,
+  'plaza': 20,
+  'shop': 20,
+  'house': 20,
+  'villa': 20,
+  'upper': 20, // Upper portion
+};
+
+String photoKey(Listing l) => switch (l.kind) {
+  ListingKind.plot => l.zone == 'Commercial' ? 'commercial_plot' : 'plot',
+  ListingKind.building => 'building',
+  ListingKind.plaza => 'plaza',
+  ListingKind.shop => 'shop',
+  ListingKind.house => l.subType == 'Villa'
+      ? 'villa'
+      : (l.subType == 'Upper Portion' ? 'upper' : 'house'),
+};
+
+/// Listing ki category aur us ki photos ki ginti
+(String, int) _photoPool(Listing l) {
+  var key = photoKey(l);
+  var n = kPhotoCounts[key] ?? 0;
+  if (n < 1) {
+    key = key == 'commercial_plot' ? 'plot' : (key == 'upper' ? 'house' : key);
+    n = kPhotoCounts[key] ?? 1;
+  }
+  return (key, n < 1 ? 1 : n);
+}
+
+String photoFolder(String key) => switch (key) {
+      'plot' => 'Residential plot',
+      'commercial_plot' => 'Commercial plot',
+      'building' => 'Building',
+      'plaza' => 'Plaza',
+      'shop' => 'Shop',
+      'house' => 'House',
+      'villa' => 'Villa',
+      _ => 'House',
+    };
+
+/// Har listing ki ID se ek fixed photo chunta hai (har bar wahi, random nahi)
+String kindImage(Listing l) {
+  final (key, n) = _photoPool(l);
+  final folder = photoFolder(key);
+  final hash = l.id.codeUnits.fold<int>(7, (a, c) => (a * 31 + c) & 0x7fffffff);
+  final v = hash % n;
+  return 'assets/images/categories/$folder/$key${v == 0 ? '' : '_${v + 1}'}.jpg';
+}
+
+/// Category ki pehli photo (jab koi photo file na mile to ye dikhti hai)
+String kindBaseImage(Listing l) {
+  final (key, _) = _photoPool(l);
+  final folder = photoFolder(key);
+  return 'assets/images/categories/$folder/$key.jpg';
+}
+
+/// Listing ka cover: gradient + photo (smart fit) + halka dark overlay
+class CoverImage extends StatelessWidget {
+  final Listing l;
+  const CoverImage(this.l, {super.key});
+
+  Widget _fallback() => Stack(fit: StackFit.expand, children: [
+    DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: kindColors(l),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    ),
+    Align(
+      alignment: Alignment.bottomRight,
+      child: Icon(kindIcon(l),
+          size: 100, color: Colors.white.withValues(alpha: 0.07)),
+    ),
+    // Variant file na ho to category ki pehli photo
+    SmartImage.asset(
+      kindBaseImage(l),
+      alignment: const Alignment(0, 0.15),
+    ),
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(fit: StackFit.expand, children: [
+      SmartImage.asset(
+        kindImage(l),
+        alignment: const Alignment(0, 0.15),
+        fallback: _fallback(),
+      ),
+      const DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0x66000000), Colors.transparent, Color(0x99000000)],
+          ),
+        ),
+      ),
+    ]);
+  }
+}
 
 class StatusChip extends StatelessWidget {
   final String status;
@@ -99,10 +217,19 @@ class SaveButton extends StatelessWidget {
 }
 
 class ListingCard extends StatelessWidget {
-  static const double height = 292;
+  /// Card ki kul height = imageHeight + bodyHeight
+  static const double bodyHeight = 188;
+  static const double height = 292; // purana naam (ab use nahi hota)
+
   final Listing l;
+  final double imageHeight;
   final VoidCallback onTap;
-  const ListingCard({super.key, required this.l, required this.onTap});
+  const ListingCard({
+    super.key,
+    required this.l,
+    required this.onTap,
+    this.imageHeight = 140,
+  });
 
   List<(IconData, String)> _specs() {
     switch (l.kind) {
@@ -145,7 +272,7 @@ class ListingCard extends StatelessWidget {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           SizedBox(
-            height: 104,
+            height: imageHeight,
             child: Stack(fit: StackFit.expand, children: [
               CoverImage(l),
               Positioned(top: 10, left: 10, child: StatusChip(l.status)),
@@ -158,7 +285,7 @@ class ListingCard extends StatelessWidget {
                     padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: AppColors.orange.withValues(alpha: 0.18),
+                      color: Colors.black.withValues(alpha: 0.55),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(l.offerLabel.toUpperCase(),
@@ -172,7 +299,7 @@ class ListingCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(l.id,
                       style: const TextStyle(
-                          color: AppColors.muted,
+                          color: Colors.white70,
                           fontSize: 10,
                           fontWeight: FontWeight.w700)),
                 ]),
@@ -250,53 +377,5 @@ class ListingCard extends StatelessWidget {
         ]),
       ),
     );
-  }
-}
-
-String kindImage(Listing l) => switch (l.kind) {
-      ListingKind.plot => 'assets/images/categories/plot.jpg',
-      ListingKind.building => 'assets/images/categories/building.jpg',
-      ListingKind.plaza => 'assets/images/categories/plaza.jpg',
-      ListingKind.shop => 'assets/images/categories/shop.jpg',
-      ListingKind.house => l.subType == 'Villa'
-          ? 'assets/images/categories/villa.jpg'
-          : 'assets/images/categories/house.jpg',
-    };
-
-class CoverImage extends StatelessWidget {
-  final Listing l;
-  const CoverImage(this.l, {super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(fit: StackFit.expand, children: [
-      DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: kindColors(l),
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-      ),
-      Image.asset(
-        kindImage(l),
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Align(
-          alignment: Alignment.bottomRight,
-          child: Icon(kindIcon(l),
-              size: 100, color: Colors.white.withValues(alpha: 0.07)),
-        ),
-      ),
-      const DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0x66000000), Colors.transparent, Color(0x99000000)],
-          ),
-        ),
-      ),
-    ]);
   }
 }

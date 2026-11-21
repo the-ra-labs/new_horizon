@@ -88,35 +88,40 @@ class ListingDetailScreen extends StatelessWidget {
   );
 
   Widget _hero() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: SizedBox(
-        height: 230,
-        child: Stack(fit: StackFit.expand, children: [
-          CoverImage(l),
-          Positioned(top: 14, left: 14, child: StatusChip(l.status)),
-          Positioned(top: 12, right: 12, child: SaveButton(id: l.id, size: 40)),
-          Positioned(
-            left: 16,
-            bottom: 16,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.orange.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
+    return LayoutBuilder(builder: (context, box) {
+      final h = (box.maxWidth * 9 / 16).clamp(200.0, 380.0).toDouble();
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: SizedBox(
+          height: h,
+          child: Stack(fit: StackFit.expand, children: [
+            CoverImage(l),
+            Positioned(top: 14, left: 14, child: StatusChip(l.status)),
+            Positioned(
+                top: 12, right: 12, child: SaveButton(id: l.id, size: 40)),
+            Positioned(
+              left: 16,
+              bottom: 16,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(l.offerLabel.toUpperCase(),
+                    style: const TextStyle(
+                      color: AppColors.orange,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    )),
               ),
-              child: Text(l.offerLabel.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.orange,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                  )),
             ),
-          ),
-        ]),
-      ),
-    );
+          ]),
+        ),
+      );
+    });
   }
 
   Widget _headline() {

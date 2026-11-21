@@ -27,6 +27,13 @@ flutter:
     - assets/images/estates/
     - assets/images/staff/
     - assets/images/categories/
+    - assets/images/categories/Building/
+    - assets/images/categories/Commercial plot/
+    - assets/images/categories/House/
+    - assets/images/categories/Plaza/
+    - assets/images/categories/Residential plot/
+    - assets/images/categories/Shop/
+    - assets/images/categories/Villa/
 
 flutter_launcher_icons:
   android: "launcher_icon"
